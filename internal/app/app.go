@@ -20,4 +20,11 @@ func Start() {
 	if err != nil {
 		log.Panic(err.Error())
 	}
+
+	info := NewAnonInfo()
+	err = info.getInfo(db)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+
 }
