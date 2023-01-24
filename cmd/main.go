@@ -1,7 +1,13 @@
 package main
 
-import "log"
+import (
+	"log"
+
+	"sensQID/internal/app"
+)
 
 func main() {
 	log.Print("sensitive QID anonymizer started")
+
+	app.Start()
 }
