@@ -27,4 +27,8 @@ func Start() {
 		log.Panic(err.Error())
 	}
 
+	err = info.freql1lqDiv(db)
+	if err != nil {
+		log.Panic(err.Error())
+	}
 }

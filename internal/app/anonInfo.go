@@ -5,46 +5,55 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sensQID/internal/pkg/database"
 	"strconv"
 	"strings"
+
+	"sensQID/internal/pkg/database"
 )
 
 type anonInfo struct {
-	table   string
-	columns []string
-	l       []int
+	table       string
+	columns     []string
+	l           []int
+	columnsAndL map[string]int
 }
 
 func NewAnonInfo() *anonInfo {
 	return &anonInfo{}
 }
 
-func (i *anonInfo) getInfo(db *database.DB) error {
+func (info *anonInfo) getInfo(db *database.DB) error {
 	reader := bufio.NewReader(os.Stdin)
 
-	table, err := i.getTableName(reader, db)
+	table, err := info.getTableName(reader, db)
 	if err != nil {
 		return err
 	}
-	i.table = table
+	info.table = table
 
-	columns, err := i.getSensQID(reader, db)
+	columns, err := info.getSensQID(reader, db)
 	if err != nil {
 		return err
 	}
-	i.columns = columns
+	info.columns = columns
 
-	l, err := i.getL(reader)
+	l, err := info.getL(reader)
 	if err != nil {
 		return err
 	}
-	i.l = l
+	info.l = l
+
+	columnsAndL := make(map[string]int)
+	for i, column := range columns {
+		columnsAndL[column] = l[i]
+	}
+
+	info.columnsAndL = columnsAndL
 
 	return nil
 }
 
-func (i *anonInfo) getTableName(reader *bufio.Reader, db *database.DB) (string, error) {
+func (info *anonInfo) getTableName(reader *bufio.Reader, db *database.DB) (string, error) {
 	fmt.Println("Enter table name:")
 	table, err := reader.ReadString('\n')
 	if err != nil {
@@ -62,7 +71,7 @@ func (i *anonInfo) getTableName(reader *bufio.Reader, db *database.DB) (string, 
 	return table, nil
 }
 
-func (i *anonInfo) getSensQID(reader *bufio.Reader, db *database.DB) ([]string, error) {
+func (info *anonInfo) getSensQID(reader *bufio.Reader, db *database.DB) ([]string, error) {
 	fmt.Println("Enter sensitive QID column name:")
 	input, err := reader.ReadString('\n')
 	if err != nil {
@@ -73,7 +82,7 @@ func (i *anonInfo) getSensQID(reader *bufio.Reader, db *database.DB) ([]string, 
 	QIDs := strings.Split(input, ",")
 
 	for _, QID := range QIDs {
-		exist, err := db.IsColumnExist(i.table, QID)
+		exist, err := db.IsColumnExist(info.table, QID)
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +95,7 @@ func (i *anonInfo) getSensQID(reader *bufio.Reader, db *database.DB) ([]string, 
 	return QIDs, nil
 }
 
-func (i *anonInfo) getL(reader *bufio.Reader) ([]int, error) {
+func (info *anonInfo) getL(reader *bufio.Reader) ([]int, error) {
 	fmt.Println("Enter (l_1, ..., l_q):")
 	input, err := reader.ReadString('\n')
 	if err != nil {
@@ -96,7 +105,7 @@ func (i *anonInfo) getL(reader *bufio.Reader) ([]int, error) {
 	input = strings.TrimSuffix(input, "\r\n")
 
 	lStr := strings.Split(input, ",")
-	if len(lStr) != len(i.columns) {
+	if len(lStr) != len(info.columns) {
 		return nil, errors.New("count of l's is not equal to number of columns")
 	}
 
