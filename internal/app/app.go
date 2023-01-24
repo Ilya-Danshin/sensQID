@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"log"
 
 	"sensQID/internal/pkg/cfg"
+	"sensQID/internal/pkg/database"
 )
 
 func Start() {
@@ -12,5 +14,10 @@ func Start() {
 		log.Panic(err.Error())
 	}
 
-	log.Println(config)
+	ctx := context.Background()
+	db := database.NewDB()
+	err = db.Init(ctx, config.DB)
+	if err != nil {
+		log.Panic(err.Error())
+	}
 }
