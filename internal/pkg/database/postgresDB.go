@@ -1,8 +1,12 @@
 package database
 
 import (
+	"container/list"
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/jackc/pgx/v4"
 
 	"sensQID/internal/pkg/cfg"
@@ -146,11 +150,6 @@ func (db *DB) CreateAnonTable(tableName string, columns []string) error {
 func (db *DB) GetRandomIntValues(table, column string, n int, value int) ([]int, error) {
 	query := "SELECT " + column + " FROM (SELECT DISTINCT " + column + " FROM " + table + " WHERE " + column + " != $1 " + " GROUP BY " + column + ") t ORDER BY random() LIMIT $2"
 
-	//rows, err := db.conn.Query(db.ctx,
-	//	`SELECT $1
-	//		FROM $2
-	//		ORDER BY random()
-	//		LIMIT $3`, column, table, n)
 	rows, err := db.conn.Query(db.ctx, query, value, n)
 	defer rows.Close()
 	if err != nil {
@@ -172,11 +171,7 @@ func (db *DB) GetRandomIntValues(table, column string, n int, value int) ([]int,
 
 func (db *DB) GetRandomStrValues(table, column string, n int, value string) ([]string, error) {
 	query := "SELECT " + column + " FROM (SELECT DISTINCT " + column + " FROM " + table + " WHERE " + column + " != $1 " + " GROUP BY " + column + ") t ORDER BY random() LIMIT $2"
-	//rows, err := db.conn.Query(db.ctx,
-	//	`SELECT $1
-	//		FROM $2
-	//		ORDER BY random()
-	//		LIMIT $3`, column, table, n)
+
 	rows, err := db.conn.Query(db.ctx, query, value, n)
 	defer rows.Close()
 	if err != nil {
@@ -261,4 +256,66 @@ func (db *DB) GetTextValue(table, column string, n int) (string, error) {
 		}
 	}
 	return value, nil
+}
+
+func (db *DB) InsertRow(table string, columns []string, data *list.List) error {
+	query := "INSERT INTO " + table + anonymizedName + "("
+
+	for i, column := range columns {
+		query += column
+		if i != len(columns)-1 {
+			query += ", "
+		} else {
+			query += ")"
+		}
+	}
+
+	query += " VALUES("
+	for counter, elem := 0, data.Front(); elem != nil; elem = elem.Next() {
+		switch i := elem.Value.(type) {
+		case int:
+			query += strconv.Itoa(i)
+		case string:
+			query += "'" + i + "'"
+		case []int:
+			query += "'{"
+			for cnt, j := range i {
+				query += strconv.Itoa(j)
+				if cnt != len(i)-1 {
+					query += ", "
+				} else {
+					query += "}'"
+				}
+			}
+		case []string:
+			query += "'{"
+			for cnt, j := range i {
+				query += "\"" + j + "\""
+				if cnt != len(i)-1 {
+					query += ", "
+				} else {
+					query += "}'"
+				}
+			}
+		default:
+			return errors.New("incorrect data type")
+		}
+
+		if counter != data.Len()-1 {
+			query += ", "
+		} else {
+			query += ");"
+		}
+
+		counter++
+	}
+
+	rows, err := db.conn.Query(db.ctx,
+		query)
+	defer rows.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
