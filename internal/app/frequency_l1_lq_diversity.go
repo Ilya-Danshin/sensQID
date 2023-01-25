@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"errors"
 	"log"
+	"math/rand"
 	"sensQID/internal/pkg/database"
 )
 
@@ -45,7 +46,17 @@ func (info *anonInfo) freql1lqDiv(db *database.DB) error {
 				// If current column is anonymized column - get random l-1 values from table and original value
 				if isContain(column, info.columns) {
 					//TODO: get random shuffled slice of values and add it to list
-					row.PushBack([]int{value, value, value})
+					//row.PushBack([]int{value, value, value})
+					values, err := db.GetRandomIntValues(info.table, column, info.columnsAndL[column]-1, value)
+					if err != nil {
+						return err
+					}
+					values = append(values, value)
+					rand.Shuffle(len(values), func(i, j int) {
+						values[i], values[j] = values[j], values[i]
+					})
+
+					row.PushBack(values)
 				} else {
 					// Else just copy value in anonymized table
 					row.PushBack(value)
@@ -58,7 +69,17 @@ func (info *anonInfo) freql1lqDiv(db *database.DB) error {
 				// If current column is anonymized column - get random l-1 values from table and original value
 				if isContain(column, info.columns) {
 					//TODO: get random shuffled slice of values and add it to list
-					row.PushBack([]string{value, value, value})
+					//row.PushBack([]string{value, value, value})
+					values, err := db.GetRandomStrValues(info.table, column, info.columnsAndL[column]-1, value)
+					if err != nil {
+						return err
+					}
+					values = append(values, value)
+					rand.Shuffle(len(values), func(i, j int) {
+						values[i], values[j] = values[j], values[i]
+					})
+
+					row.PushBack(values)
 				} else {
 					// Else just copy value in anonymized table
 					row.PushBack(value)
@@ -67,11 +88,13 @@ func (info *anonInfo) freql1lqDiv(db *database.DB) error {
 				return errors.New("unknown type of column " + column)
 			}
 		}
-		// TODO: After copy all columns we need to insert new row in anonnymized table
+		//After copy all columns we need to insert new row in anonnymized table
 		for row.Len() != 0 {
 			log.Print(row.Front())
 			row.Remove(row.Front())
 		}
+
+		// TODO: add pushing values to anonymized table
 	}
 
 	return nil

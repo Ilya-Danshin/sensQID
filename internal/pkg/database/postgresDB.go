@@ -143,12 +143,15 @@ func (db *DB) CreateAnonTable(tableName string, columns []string) error {
 	return nil
 }
 
-func (db *DB) GetRandomIntValues(table, column string, n int) ([]int, error) {
-	rows, err := db.conn.Query(db.ctx,
-		`SELECT $1
-			FROM $2
-			ORDER BY random()
-			LIMIT $3`, column, table, n)
+func (db *DB) GetRandomIntValues(table, column string, n int, value int) ([]int, error) {
+	query := "SELECT " + column + " FROM (SELECT DISTINCT " + column + " FROM " + table + " WHERE " + column + " != $1 " + " GROUP BY " + column + ") t ORDER BY random() LIMIT $2"
+
+	//rows, err := db.conn.Query(db.ctx,
+	//	`SELECT $1
+	//		FROM $2
+	//		ORDER BY random()
+	//		LIMIT $3`, column, table, n)
+	rows, err := db.conn.Query(db.ctx, query, value, n)
 	defer rows.Close()
 	if err != nil {
 		return nil, err
@@ -167,12 +170,14 @@ func (db *DB) GetRandomIntValues(table, column string, n int) ([]int, error) {
 	return result, nil
 }
 
-func (db *DB) GetRandomStrValues(table, column string, n int) ([]string, error) {
-	rows, err := db.conn.Query(db.ctx,
-		`SELECT $1
-			FROM $2
-			ORDER BY random()
-			LIMIT $3`, column, table, n)
+func (db *DB) GetRandomStrValues(table, column string, n int, value string) ([]string, error) {
+	query := "SELECT " + column + " FROM (SELECT DISTINCT " + column + " FROM " + table + " WHERE " + column + " != $1 " + " GROUP BY " + column + ") t ORDER BY random() LIMIT $2"
+	//rows, err := db.conn.Query(db.ctx,
+	//	`SELECT $1
+	//		FROM $2
+	//		ORDER BY random()
+	//		LIMIT $3`, column, table, n)
+	rows, err := db.conn.Query(db.ctx, query, value, n)
 	defer rows.Close()
 	if err != nil {
 		return nil, err
